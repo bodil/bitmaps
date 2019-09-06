@@ -1,0 +1,19 @@
+[package]
+name = "bitmaps"
+version = "0.0.0"
+authors = ["Bodil Stokke <bodil@bodil.org>"]
+edition = "2018"
+license = "MPL-2.0+"
+description = "Fixed size boolean arrays"
+repository = "https://github.com/bodil/bitmaps"
+documentation = "http://docs.rs/bitmaps"
+readme = "./README.md"
+categories = ["data-structures"]
+exclude = ["release.toml", "proptest-regressions/**"]
+
+[dependencies]
+typenum = "1.10.0"
+
+[dev-dependencies]
+proptest = "0.9.1"
+proptest-derive = "0.1.0"
