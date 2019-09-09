@@ -3,10 +3,11 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::fmt::{Debug, Error, Formatter};
+use std::ops::*;
 
 use typenum::*;
 
-use crate::types::Bits;
+use crate::types::{BitOps, Bits};
 
 /// A compact array of bits.
 ///
@@ -43,7 +44,7 @@ impl<Size: Bits> PartialEq for Bitmap<Size> {
 
 impl<Size: Bits> Debug for Bitmap<Size> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        self.data.fmt(f)
+        write!(f, "{}", Size::Store::to_hex(&self.data))
     }
 }
 
@@ -52,6 +53,16 @@ impl<Size: Bits> Bitmap<Size> {
     #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Construct a bitmap where every bit with index less than `bits` is
+    /// `true`, and every other bit is `false`.
+    #[inline]
+    pub fn mask(bits: usize) -> Self {
+        debug_assert!(bits < Size::USIZE);
+        Self {
+            data: Size::Store::make_mask(bits),
+        }
     }
 
     /// Construct a bitmap from a value of the same type as its backing store.
@@ -69,7 +80,7 @@ impl<Size: Bits> Bitmap<Size> {
     /// Count the number of `true` bits in the bitmap.
     #[inline]
     pub fn len(self) -> usize {
-        Size::len(&self.data)
+        Size::Store::len(&self.data)
     }
 
     /// Test if the bitmap contains only `false` bits.
@@ -81,7 +92,8 @@ impl<Size: Bits> Bitmap<Size> {
     /// Get the value of the bit at a given index.
     #[inline]
     pub fn get(self, index: usize) -> bool {
-        Size::get(&self.data, index)
+        debug_assert!(index < Size::USIZE);
+        Size::Store::get(&self.data, index)
     }
 
     /// Set the value of the bit at a given index.
@@ -89,25 +101,82 @@ impl<Size: Bits> Bitmap<Size> {
     /// Returns the previous value of the bit.
     #[inline]
     pub fn set(&mut self, index: usize, value: bool) -> bool {
-        Size::set(&mut self.data, index, value)
+        debug_assert!(index < Size::USIZE);
+        Size::Store::set(&mut self.data, index, value)
     }
 
     /// Find the index of the first `true` bit in the bitmap.
     #[inline]
     pub fn first_index(self) -> Option<usize> {
-        Size::first_index(&self.data)
+        Size::Store::first_index(&self.data)
+    }
+
+    /// Invert all the bits in the bitmap.
+    #[inline]
+    pub fn invert(&mut self) {
+        Size::Store::invert(&mut self.data);
     }
 }
 
-impl<Size: Bits> IntoIterator for Bitmap<Size> {
+impl<'a, Size: Bits> IntoIterator for &'a Bitmap<Size> {
     type Item = usize;
-    type IntoIter = Iter<Size>;
+    type IntoIter = Iter<'a, Size>;
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
             index: 0,
-            data: self.data,
+            data: self,
         }
+    }
+}
+
+impl<Size: Bits> BitAnd for Bitmap<Size> {
+    type Output = Self;
+    fn bitand(mut self, rhs: Self) -> Self::Output {
+        Size::Store::bit_and(&mut self.data, &rhs.data);
+        self
+    }
+}
+
+impl<Size: Bits> BitOr for Bitmap<Size> {
+    type Output = Self;
+    fn bitor(mut self, rhs: Self) -> Self::Output {
+        Size::Store::bit_or(&mut self.data, &rhs.data);
+        self
+    }
+}
+
+impl<Size: Bits> BitXor for Bitmap<Size> {
+    type Output = Self;
+    fn bitxor(mut self, rhs: Self) -> Self::Output {
+        Size::Store::bit_xor(&mut self.data, &rhs.data);
+        self
+    }
+}
+
+impl<Size: Bits> Not for Bitmap<Size> {
+    type Output = Self;
+    fn not(mut self) -> Self::Output {
+        Size::Store::invert(&mut self.data);
+        self
+    }
+}
+
+impl<Size: Bits> BitAndAssign for Bitmap<Size> {
+    fn bitand_assign(&mut self, rhs: Self) {
+        Size::Store::bit_and(&mut self.data, &rhs.data);
+    }
+}
+
+impl<Size: Bits> BitOrAssign for Bitmap<Size> {
+    fn bitor_assign(&mut self, rhs: Self) {
+        Size::Store::bit_or(&mut self.data, &rhs.data);
+    }
+}
+
+impl<Size: Bits> BitXorAssign for Bitmap<Size> {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        Size::Store::bit_xor(&mut self.data, &rhs.data);
     }
 }
 
@@ -216,19 +285,19 @@ impl Into<[u128; 8]> for Bitmap<U1024> {
 /// assert_eq!(vec![3, 5, 8], true_indices);
 /// # }
 /// ```
-pub struct Iter<Size: Bits> {
+pub struct Iter<'a, Size: Bits> {
     index: usize,
-    data: Size::Store,
+    data: &'a Bitmap<Size>,
 }
 
-impl<Size: Bits> Iterator for Iter<Size> {
+impl<'a, Size: Bits> Iterator for Iter<'a, Size> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= Size::USIZE {
             return None;
         }
-        if Size::get(&self.data, self.index) {
+        if self.data.get(self.index) {
             self.index += 1;
             Some(self.index - 1)
         } else {

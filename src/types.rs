@@ -6,6 +6,261 @@ use std::fmt::Debug;
 
 use typenum::*;
 
+/// A trait that defines generalised operations on a `Bits::Store` type.
+pub trait BitOps {
+    fn get(bits: &Self, index: usize) -> bool;
+    fn set(bits: &mut Self, index: usize, value: bool) -> bool;
+    fn len(bits: &Self) -> usize;
+    fn first_index(bits: &Self) -> Option<usize>;
+    fn bit_and(bits: &mut Self, other_bits: &Self);
+    fn bit_or(bits: &mut Self, other_bits: &Self);
+    fn bit_xor(bits: &mut Self, other_bits: &Self);
+    fn invert(bits: &mut Self);
+    fn make_mask(shift: usize) -> Self;
+    fn to_hex(bits: &Self) -> String;
+}
+
+impl BitOps for bool {
+    #[inline]
+    fn get(bits: &Self, index: usize) -> bool {
+        debug_assert!(index == 0);
+        *bits
+    }
+
+    #[inline]
+    fn set(bits: &mut Self, index: usize, value: bool) -> bool {
+        debug_assert!(index == 0);
+        std::mem::replace(bits, value)
+    }
+
+    #[inline]
+    fn len(bits: &Self) -> usize {
+        if *bits {
+            1
+        } else {
+            0
+        }
+    }
+
+    #[inline]
+    fn first_index(bits: &Self) -> Option<usize> {
+        if *bits {
+            Some(0)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn bit_and(bits: &mut Self, other_bits: &Self) {
+        *bits &= *other_bits;
+    }
+
+    #[inline]
+    fn bit_or(bits: &mut Self, other_bits: &Self) {
+        *bits |= *other_bits;
+    }
+
+    #[inline]
+    fn bit_xor(bits: &mut Self, other_bits: &Self) {
+        *bits ^= *other_bits;
+    }
+
+    #[inline]
+    fn invert(bits: &mut Self) {
+        *bits = !*bits;
+    }
+
+    #[inline]
+    fn make_mask(shift: usize) -> Self {
+        shift > 0
+    }
+
+    fn to_hex(bits: &Self) -> String {
+        if *bits {
+            "1".to_owned()
+        } else {
+            "0".to_owned()
+        }
+    }
+}
+
+macro_rules! bitops_for {
+    ($target:ty) => {
+        impl BitOps for $target {
+            #[inline]
+            fn get(bits: &Self, index: usize) -> bool {
+                bits & (1 << index) != 0
+            }
+
+            #[inline]
+            fn set(bits: &mut Self, index: usize, value: bool) -> bool {
+                let mask = 1 << index;
+                let prev = *bits & mask;
+                if value {
+                    *bits |= mask;
+                } else {
+                    *bits &= !mask;
+                }
+                prev != 0
+            }
+
+            #[inline]
+            fn len(bits: &Self) -> usize {
+                bits.count_ones() as usize
+            }
+
+            #[inline]
+            fn first_index(bits: &Self) -> Option<usize> {
+                if *bits == 0 {
+                    None
+                } else {
+                    Some(bits.trailing_zeros() as usize)
+                }
+            }
+
+            #[inline]
+            fn bit_and(bits: &mut Self, other_bits: &Self) {
+                *bits &= *other_bits;
+            }
+
+            #[inline]
+            fn bit_or(bits: &mut Self, other_bits: &Self) {
+                *bits |= *other_bits;
+            }
+
+            #[inline]
+            fn bit_xor(bits: &mut Self, other_bits: &Self) {
+                *bits ^= *other_bits;
+            }
+
+            #[inline]
+            fn invert(bits: &mut Self) {
+                *bits = !*bits;
+            }
+
+            #[inline]
+            fn make_mask(shift: usize) -> Self {
+                (1 << shift) - 1
+            }
+
+            fn to_hex(bits: &Self) -> String {
+                format!("{:x}", bits)
+            }
+        }
+    };
+}
+
+macro_rules! bitops_for_big {
+    ($words:expr) => {
+        impl BitOps for [u128; $words] {
+            #[inline]
+            fn get(bits: &Self, index: usize) -> bool {
+                let word_index = index / 128;
+                let index = index & 127;
+                bits[word_index] & (1 << index) != 0
+            }
+
+            #[inline]
+            fn set(bits: &mut Self, index: usize, value: bool) -> bool {
+                let word_index = index / 128;
+                let index = index & 127;
+
+                let mask = 1 << (index & 127);
+                let bits = &mut bits[word_index];
+                let prev = *bits & mask;
+                if value {
+                    *bits |= mask;
+                } else {
+                    *bits &= !mask;
+                }
+                prev != 0
+            }
+
+            fn make_mask(shift: usize) -> Self {
+                let word_index = shift / 128;
+                let index = shift & 127;
+                let mut out = [0; $words];
+                for (chunk_index, chunk) in out.iter_mut().enumerate() {
+                    if chunk_index < word_index {
+                        *chunk = !0u128;
+                    } else if chunk_index == word_index {
+                        *chunk = (1 << index) - 1;
+                    } else {
+                        return out;
+                    }
+                }
+                out
+            }
+
+            #[inline]
+            fn len(bits: &Self) -> usize {
+                bits.iter().fold(0, |acc, next| acc + next.count_ones()) as usize
+            }
+
+            #[inline]
+            fn first_index(bits: &Self) -> Option<usize> {
+                for (index, part) in bits.iter().enumerate() {
+                    if *part != 0u128 {
+                        return Some(part.trailing_zeros() as usize + (128 * index));
+                    }
+                }
+                None
+            }
+
+            #[inline]
+            fn bit_and(bits: &mut Self, other_bits: &Self) {
+                for (left, right) in bits.iter_mut().zip(other_bits.iter()) {
+                    *left &= *right;
+                }
+            }
+
+            #[inline]
+            fn bit_or(bits: &mut Self, other_bits: &Self) {
+                for (left, right) in bits.iter_mut().zip(other_bits.iter()) {
+                    *left |= *right;
+                }
+            }
+
+            #[inline]
+            fn bit_xor(bits: &mut Self, other_bits: &Self) {
+                for (left, right) in bits.iter_mut().zip(other_bits.iter()) {
+                    *left ^= *right;
+                }
+            }
+
+            #[inline]
+            fn invert(bits: &mut Self) {
+                for chunk in bits.iter_mut() {
+                    *chunk = !*chunk;
+                }
+            }
+
+            fn to_hex(bits: &Self) -> String {
+                let mut out = String::new();
+                for chunk in bits {
+                    out += &format!("{:x}", chunk);
+                }
+                out
+            }
+        }
+    };
+}
+
+bitops_for!(u8);
+bitops_for!(u16);
+bitops_for!(u32);
+bitops_for!(u64);
+bitops_for!(u128);
+
+bitops_for_big!(2);
+bitops_for_big!(3);
+bitops_for_big!(4);
+bitops_for_big!(5);
+bitops_for_big!(6);
+bitops_for_big!(7);
+bitops_for_big!(8);
+
 /// A type level number signifying the number of bits in a bitmap.
 ///
 /// This trait is implemented for type level numbers from `U1` to `U1024`.
@@ -26,77 +281,17 @@ use typenum::*;
 /// ```
 pub trait Bits: Unsigned {
     /// A primitive integer type suitable for storing this many bits.
-    type Store: Default + Copy + PartialEq + Debug;
-
-    fn get(bits: &Self::Store, index: usize) -> bool;
-    fn set(bits: &mut Self::Store, index: usize, value: bool) -> bool;
-    fn len(bits: &Self::Store) -> usize;
-    fn first_index(bits: &Self::Store) -> Option<usize>;
+    type Store: BitOps + Default + Copy + PartialEq + Debug;
 }
 
 impl Bits for U1 {
     type Store = bool;
-
-    fn get(bits: &Self::Store, index: usize) -> bool {
-        debug_assert!(index == 0);
-        *bits
-    }
-
-    fn set(bits: &mut Self::Store, index: usize, value: bool) -> bool {
-        debug_assert!(index == 0);
-        std::mem::replace(bits, value)
-    }
-
-    fn len(bits: &Self::Store) -> usize {
-        if *bits {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn first_index(bits: &Self::Store) -> Option<usize> {
-        if *bits {
-            Some(0)
-        } else {
-            None
-        }
-    }
 }
 
 macro_rules! bits_for {
     ($num:ty, $result:ty) => {
         impl Bits for $num {
             type Store = $result;
-
-            fn get(bits: &$result, index: usize) -> bool {
-                debug_assert!(index < Self::USIZE);
-                bits & (1 << index) != 0
-            }
-
-            fn set(bits: &mut $result, index: usize, value: bool) -> bool {
-                debug_assert!(index < Self::USIZE);
-                let mask = 1 << index;
-                let prev = *bits & mask;
-                if value {
-                    *bits |= mask;
-                } else {
-                    *bits &= !mask;
-                }
-                prev != 0
-            }
-
-            fn len(bits: &$result) -> usize {
-                bits.count_ones() as usize
-            }
-
-            fn first_index(bits: &$result) -> Option<usize> {
-                if *bits == 0 {
-                    None
-                } else {
-                    Some(bits.trailing_zeros() as usize)
-                }
-            }
         }
     };
 }
@@ -105,42 +300,6 @@ macro_rules! bits_for_big {
     ($num:ty, $words:expr) => {
         impl Bits for $num {
             type Store = [u128; $words];
-
-            fn get(bits: &Self::Store, index: usize) -> bool {
-                debug_assert!(index < Self::USIZE);
-                let word_index = index / 128;
-                let index = index & 127;
-                bits[word_index] & (1 << index) != 0
-            }
-
-            fn set(bits: &mut Self::Store, index: usize, value: bool) -> bool {
-                debug_assert!(index < Self::USIZE);
-                let word_index = index / 128;
-                let index = index & 127;
-
-                let mask = 1 << (index & 127);
-                let bits = &mut bits[word_index];
-                let prev = *bits & mask;
-                if value {
-                    *bits |= mask;
-                } else {
-                    *bits &= !mask;
-                }
-                prev != 0
-            }
-
-            fn len(bits: &Self::Store) -> usize {
-                bits.iter().fold(0, |acc, next| acc + next.count_ones()) as usize
-            }
-
-            fn first_index(bits: &Self::Store) -> Option<usize> {
-                for (index, part) in bits.iter().enumerate() {
-                    if *part != 0u128 {
-                        return Some(part.trailing_zeros() as usize + (128 * index));
-                    }
-                }
-                None
-            }
         }
     };
 }
