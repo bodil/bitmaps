@@ -308,6 +308,7 @@ impl<'a, Size: Bits> Iterator for Iter<'a, Size> {
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[allow(clippy::cast_ptr_alignment)]
 mod x86_arch {
     use super::*;
     #[cfg(target_arch = "x86")]
