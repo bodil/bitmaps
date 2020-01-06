@@ -269,15 +269,12 @@ bitops_for_big!(8);
 ///
 /// ```rust
 /// # #[macro_use] extern crate bitmaps;
-/// # extern crate typenum;
 /// # use bitmaps::Bits;
 /// # use typenum::U10;
-/// # fn main() {
 /// assert_eq!(
 ///     std::mem::size_of::<<U10 as Bits>::Store>(),
 ///     std::mem::size_of::<u16>()
 /// );
-/// # }
 /// ```
 pub trait Bits: Unsigned {
     /// A primitive integer type suitable for storing this many bits.

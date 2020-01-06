@@ -43,7 +43,7 @@ impl<Size: Bits> PartialEq for Bitmap<Size> {
 }
 
 impl<Size: Bits> Debug for Bitmap<Size> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", Size::Store::to_hex(&self.data))
     }
 }
@@ -272,18 +272,14 @@ impl Into<[u128; 8]> for Bitmap<U1024> {
 /// # Examples
 ///
 /// ```rust
-/// # #[macro_use] extern crate bitmaps;
-/// # extern crate typenum;
 /// # use bitmaps::Bitmap;
 /// # use typenum::U10;
-/// # fn main() {
 /// let mut bitmap: Bitmap<U10> = Bitmap::new();
 /// bitmap.set(3, true);
 /// bitmap.set(5, true);
 /// bitmap.set(8, true);
 /// let true_indices: Vec<usize> = bitmap.into_iter().collect();
 /// assert_eq!(vec![3, 5, 8], true_indices);
-/// # }
 /// ```
 pub struct Iter<'a, Size: Bits> {
     index: usize,

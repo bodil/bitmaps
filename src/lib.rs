@@ -2,6 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+#![forbid(rust_2018_idioms)]
+#![deny(nonstandard_style)]
+#![warn(unreachable_pub)]
+#![allow(clippy::missing_safety_doc)]
+
 //! This crate provides the [`Bitmap`][Bitmap] type as a convenient and
 //! efficient way of declaring and working with fixed size bitmaps in Rust.
 //!
@@ -9,10 +14,8 @@
 //!
 //! ```rust
 //! # #[macro_use] extern crate bitmaps;
-//! # extern crate typenum;
 //! # use bitmaps::Bitmap;
 //! # use typenum::U10;
-//! # fn main() {
 //! let mut bitmap: Bitmap<U10> = Bitmap::new();
 //! assert_eq!(bitmap.set(5, true), false);
 //! assert_eq!(bitmap.set(5, true), true);
@@ -22,7 +25,6 @@
 //! assert_eq!(bitmap.set(3, true), false);
 //! assert_eq!(bitmap.len(), 2);
 //! assert_eq!(bitmap.first_index(), Some(3));
-//! # }
 //! ```
 //!
 //! # X86 Arch Support
