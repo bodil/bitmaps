@@ -11,6 +11,10 @@ readme = "./README.md"
 categories = ["data-structures"]
 exclude = ["release.toml", "proptest-regressions/**"]
 
+[features]
+default = ["std"]
+std = []
+
 [dependencies]
 typenum = "1.10.0"
 

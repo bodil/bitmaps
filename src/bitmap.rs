@@ -2,12 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fmt::{Debug, Error, Formatter};
-use std::ops::*;
+use core::ops::*;
 
 use typenum::*;
 
 use crate::types::{BitOps, Bits};
+
+#[cfg(feature = "std")]
+use std::fmt::{Debug, Error, Formatter};
 
 /// A compact array of bits.
 ///
@@ -42,6 +44,7 @@ impl<Size: Bits> PartialEq for Bitmap<Size> {
     }
 }
 
+#[cfg(feature = "std")]
 impl<Size: Bits> Debug for Bitmap<Size> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{}", Size::Store::to_hex(&self.data))
@@ -308,9 +311,9 @@ impl<'a, Size: Bits> Iterator for Iter<'a, Size> {
 mod x86_arch {
     use super::*;
     #[cfg(target_arch = "x86")]
-    use std::arch::x86::*;
+    use core::arch::x86::*;
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::*;
+    use core::arch::x86_64::*;
 
     impl Bitmap<U128> {
         #[target_feature(enable = "sse2")]
@@ -407,7 +410,7 @@ mod x86_arch {
     impl From<__m128i> for Bitmap<U128> {
         fn from(data: __m128i) -> Self {
             Self {
-                data: unsafe { std::mem::transmute(data) },
+                data: unsafe { core::mem::transmute(data) },
             }
         }
     }
@@ -415,7 +418,7 @@ mod x86_arch {
     impl From<__m256i> for Bitmap<U256> {
         fn from(data: __m256i) -> Self {
             Self {
-                data: unsafe { std::mem::transmute(data) },
+                data: unsafe { core::mem::transmute(data) },
             }
         }
     }

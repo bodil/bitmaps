@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 use typenum::*;
 
@@ -17,6 +17,7 @@ pub trait BitOps {
     fn bit_xor(bits: &mut Self, other_bits: &Self);
     fn invert(bits: &mut Self);
     fn make_mask(shift: usize) -> Self;
+    #[cfg(feature = "std")]
     fn to_hex(bits: &Self) -> String;
 }
 
@@ -30,7 +31,7 @@ impl BitOps for bool {
     #[inline]
     fn set(bits: &mut Self, index: usize, value: bool) -> bool {
         debug_assert!(index == 0);
-        std::mem::replace(bits, value)
+        core::mem::replace(bits, value)
     }
 
     #[inline]
@@ -76,6 +77,7 @@ impl BitOps for bool {
         shift > 0
     }
 
+    #[cfg(feature = "std")]
     fn to_hex(bits: &Self) -> String {
         if *bits {
             "1".to_owned()
@@ -144,6 +146,7 @@ macro_rules! bitops_for {
                 (1 << shift) - 1
             }
 
+            #[cfg(feature = "std")]
             fn to_hex(bits: &Self) -> String {
                 format!("{:x}", bits)
             }
@@ -236,6 +239,7 @@ macro_rules! bitops_for_big {
                 }
             }
 
+            #[cfg(feature = "std")]
             fn to_hex(bits: &Self) -> String {
                 let mut out = String::new();
                 for chunk in bits {

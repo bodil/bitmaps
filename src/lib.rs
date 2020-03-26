@@ -6,6 +6,7 @@
 #![deny(nonstandard_style)]
 #![warn(unreachable_pub)]
 #![allow(clippy::missing_safety_doc)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 //! This crate provides the [`Bitmap`][Bitmap] type as a convenient and
 //! efficient way of declaring and working with fixed size bitmaps in Rust.
