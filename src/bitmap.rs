@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use core::hash::{Hash, Hasher};
 use core::ops::*;
 
 use crate::types::{BitOps, Bits, BitsImpl};
@@ -28,7 +29,7 @@ where
     BitsImpl<{ SIZE }>: Bits,
 {
     fn clone(&self) -> Self {
-        Bitmap { data: self.data }
+        Bitmap::from_value(self.data)
     }
 }
 
@@ -40,7 +41,7 @@ where
 {
     fn default() -> Self {
         Bitmap {
-            data: <BitsImpl::<SIZE> as Bits>::Store::default(),
+            data: <BitsImpl<SIZE> as Bits>::Store::default(),
         }
     }
 }
@@ -54,13 +55,49 @@ where
     }
 }
 
+impl<const SIZE: usize> Eq for Bitmap<{ SIZE }> where BitsImpl<{ SIZE }>: Bits {}
+
+impl<const SIZE: usize> Hash for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+    <BitsImpl<{ SIZE }> as Bits>::Store: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_value().hash(state)
+    }
+}
+
+impl<const SIZE: usize> PartialOrd for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+    <BitsImpl<{ SIZE }> as Bits>::Store: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_value().partial_cmp(other.as_value())
+    }
+}
+
+impl<const SIZE: usize> Ord for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+    <BitsImpl<{ SIZE }> as Bits>::Store: Ord,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.as_value().cmp(other.as_value())
+    }
+}
+
 #[cfg(feature = "std")]
 impl<const SIZE: usize> Debug for Bitmap<{ SIZE }>
 where
     BitsImpl<{ SIZE }>: Bits,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "{}", <BitsImpl::<SIZE> as Bits>::Store::to_hex(&self.data))
+        write!(
+            f,
+            "{}",
+            <BitsImpl::<SIZE> as Bits>::Store::to_hex(&self.data)
+        )
     }
 }
 
@@ -80,7 +117,7 @@ where
     pub fn mask(bits: usize) -> Self {
         debug_assert!(bits < SIZE);
         Self {
-            data: <BitsImpl::<SIZE> as Bits>::Store::make_mask(bits),
+            data: <BitsImpl<SIZE> as Bits>::Store::make_mask(bits),
         }
     }
 
@@ -96,10 +133,16 @@ where
         self.data
     }
 
+    /// Get a reference to this bitmap's backing store.
+    #[inline]
+    pub fn as_value(&self) -> &<BitsImpl<SIZE> as Bits>::Store {
+        &self.data
+    }
+
     /// Count the number of `true` bits in the bitmap.
     #[inline]
     pub fn len(self) -> usize {
-        <BitsImpl::<SIZE> as Bits>::Store::len(&self.data)
+        <BitsImpl<SIZE> as Bits>::Store::len(&self.data)
     }
 
     /// Test if the bitmap contains only `false` bits.
@@ -112,7 +155,7 @@ where
     #[inline]
     pub fn get(self, index: usize) -> bool {
         debug_assert!(index < SIZE);
-        <BitsImpl::<SIZE> as Bits>::Store::get(&self.data, index)
+        <BitsImpl<SIZE> as Bits>::Store::get(&self.data, index)
     }
 
     /// Set the value of the bit at a given index.
@@ -121,19 +164,19 @@ where
     #[inline]
     pub fn set(&mut self, index: usize, value: bool) -> bool {
         debug_assert!(index < SIZE);
-        <BitsImpl::<SIZE> as Bits>::Store::set(&mut self.data, index, value)
+        <BitsImpl<SIZE> as Bits>::Store::set(&mut self.data, index, value)
     }
 
     /// Find the index of the first `true` bit in the bitmap.
     #[inline]
     pub fn first_index(self) -> Option<usize> {
-        <BitsImpl::<SIZE> as Bits>::Store::first_index(&self.data)
+        <BitsImpl<SIZE> as Bits>::Store::first_index(&self.data)
     }
 
     /// Invert all the bits in the bitmap.
     #[inline]
     pub fn invert(&mut self) {
-        <BitsImpl::<SIZE> as Bits>::Store::invert(&mut self.data);
+        <BitsImpl<SIZE> as Bits>::Store::invert(&mut self.data);
     }
 }
 
@@ -158,7 +201,7 @@ where
 {
     type Output = Self;
     fn bitand(mut self, rhs: Self) -> Self::Output {
-        <BitsImpl::<SIZE> as Bits>::Store::bit_and(&mut self.data, &rhs.data);
+        <BitsImpl<SIZE> as Bits>::Store::bit_and(&mut self.data, &rhs.data);
         self
     }
 }
@@ -169,7 +212,7 @@ where
 {
     type Output = Self;
     fn bitor(mut self, rhs: Self) -> Self::Output {
-        <BitsImpl::<SIZE> as Bits>::Store::bit_or(&mut self.data, &rhs.data);
+        <BitsImpl<SIZE> as Bits>::Store::bit_or(&mut self.data, &rhs.data);
         self
     }
 }
@@ -180,7 +223,7 @@ where
 {
     type Output = Self;
     fn bitxor(mut self, rhs: Self) -> Self::Output {
-        <BitsImpl::<SIZE> as Bits>::Store::bit_xor(&mut self.data, &rhs.data);
+        <BitsImpl<SIZE> as Bits>::Store::bit_xor(&mut self.data, &rhs.data);
         self
     }
 }
@@ -191,7 +234,7 @@ where
 {
     type Output = Self;
     fn not(mut self) -> Self::Output {
-        <BitsImpl::<SIZE> as Bits>::Store::invert(&mut self.data);
+        <BitsImpl<SIZE> as Bits>::Store::invert(&mut self.data);
         self
     }
 }
@@ -201,7 +244,7 @@ where
     BitsImpl<{ SIZE }>: Bits,
 {
     fn bitand_assign(&mut self, rhs: Self) {
-        <BitsImpl::<SIZE> as Bits>::Store::bit_and(&mut self.data, &rhs.data);
+        <BitsImpl<SIZE> as Bits>::Store::bit_and(&mut self.data, &rhs.data);
     }
 }
 
@@ -210,7 +253,7 @@ where
     BitsImpl<{ SIZE }>: Bits,
 {
     fn bitor_assign(&mut self, rhs: Self) {
-        <BitsImpl::<SIZE> as Bits>::Store::bit_or(&mut self.data, &rhs.data);
+        <BitsImpl<SIZE> as Bits>::Store::bit_or(&mut self.data, &rhs.data);
     }
 }
 
@@ -219,7 +262,7 @@ where
     BitsImpl<{ SIZE }>: Bits,
 {
     fn bitxor_assign(&mut self, rhs: Self) {
-        <BitsImpl::<SIZE> as Bits>::Store::bit_xor(&mut self.data, &rhs.data);
+        <BitsImpl<SIZE> as Bits>::Store::bit_xor(&mut self.data, &rhs.data);
     }
 }
 

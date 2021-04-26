@@ -13,6 +13,12 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
     in types. This means you can now use plain integers in the `Bitmap` type, eg. `Bitmap<32>`,
     rather than the old `Bitmap<typenum::U32>`. (#8, #9)
 
+### ADDED
+
+-   `Bitmap` now implements `Hash`, `Eq`, `PartialOrd` and `Ord`. (#7)
+-   The `as_value()` method has been added to `Bitmap`, to get a reference to the underlying value.
+    (#7)
+
 ## [2.1.0] - 2020-03-26
 
 ### ADDED
