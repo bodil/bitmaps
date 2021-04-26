@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### CHANGED
+
+-   This crate now uses const generics, rather than the `typenum` crate, to encode numerical values
+    in types. This means you can now use plain integers in the `Bitmap` type, eg. `Bitmap<32>`,
+    rather than the old `Bitmap<typenum::U32>`. (#8, #9)
+
+### ADDED
+
+-   `Bitmap` now implements `Hash`, `Eq`, `PartialOrd` and `Ord`. (#7)
+-   The `as_value()` method has been added to `Bitmap`, to get a reference to the underlying value.
+    (#7)
+-   `bitmaps::Iter` now implements `Clone` and `Debug`. (#4)
+
 ## [2.1.0] - 2020-03-26
 
 ### ADDED
