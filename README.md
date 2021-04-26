@@ -13,10 +13,9 @@ to be generally useful enough that it was split off into a separate crate.
 
 ```rust
 use bitmaps::Bitmap;
-use typenum::U10;
 
 fn main() {
-    let mut bitmap = Bitmap::<U10>::new();
+    let mut bitmap = Bitmap::<10>::new();
     assert_eq!(bitmap.set(5, true), false);
     assert_eq!(bitmap.set(5, true), true);
     assert_eq!(bitmap.get(5), true);

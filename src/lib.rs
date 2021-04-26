@@ -16,8 +16,7 @@
 //! ```rust
 //! # #[macro_use] extern crate bitmaps;
 //! # use bitmaps::Bitmap;
-//! # use typenum::U10;
-//! let mut bitmap: Bitmap<U10> = Bitmap::new();
+//! let mut bitmap: Bitmap<10> = Bitmap::new();
 //! assert_eq!(bitmap.set(5, true), false);
 //! assert_eq!(bitmap.set(5, true), true);
 //! assert_eq!(bitmap.get(5), true);
@@ -59,4 +58,4 @@ mod types;
 #[doc(inline)]
 pub use crate::bitmap::{Bitmap, Iter};
 #[doc(inline)]
-pub use crate::types::{BitOps, Bits};
+pub use crate::types::{BitOps, Bits, BitsImpl};
