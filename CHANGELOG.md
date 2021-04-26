@@ -18,6 +18,7 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 -   `Bitmap` now implements `Hash`, `Eq`, `PartialOrd` and `Ord`. (#7)
 -   The `as_value()` method has been added to `Bitmap`, to get a reference to the underlying value.
     (#7)
+-   `bitmaps::Iter` now implements `Clone` and `Debug`. (#4)
 
 ## [2.1.0] - 2020-03-26
 

@@ -366,6 +366,7 @@ impl Into<[u128; 8]> for Bitmap<1024> {
 /// let true_indices: Vec<usize> = bitmap.into_iter().collect();
 /// assert_eq!(vec![3, 5, 8], true_indices);
 /// ```
+#[derive(Clone, Debug)]
 pub struct Iter<'a, const SIZE: usize>
 where
     BitsImpl<SIZE>: Bits,
