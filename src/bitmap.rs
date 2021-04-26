@@ -308,45 +308,45 @@ impl From<[u128; 8]> for Bitmap<1024> {
     }
 }
 
-impl Into<[u128; 2]> for Bitmap<256> {
-    fn into(self) -> [u128; 2] {
-        self.data
+impl From<Bitmap<256>> for [u128; 2] {
+    fn from(bitmap: Bitmap<256>) -> Self {
+        bitmap.into_value()
     }
 }
 
-impl Into<[u128; 3]> for Bitmap<384> {
-    fn into(self) -> [u128; 3] {
-        self.data
+impl From<Bitmap<384>> for [u128; 3] {
+    fn from(bitmap: Bitmap<384>) -> Self {
+        bitmap.into_value()
     }
 }
 
-impl Into<[u128; 4]> for Bitmap<512> {
-    fn into(self) -> [u128; 4] {
-        self.data
+impl From<Bitmap<512>> for [u128; 4] {
+    fn from(bitmap: Bitmap<512>) -> Self {
+        bitmap.into_value()
     }
 }
 
-impl Into<[u128; 5]> for Bitmap<640> {
-    fn into(self) -> [u128; 5] {
-        self.data
+impl From<Bitmap<640>> for [u128; 5] {
+    fn from(bitmap: Bitmap<640>) -> Self {
+        bitmap.into_value()
     }
 }
 
-impl Into<[u128; 6]> for Bitmap<768> {
-    fn into(self) -> [u128; 6] {
-        self.data
+impl From<Bitmap<768>> for [u128; 6] {
+    fn from(bitmap: Bitmap<768>) -> Self {
+        bitmap.into_value()
     }
 }
 
-impl Into<[u128; 7]> for Bitmap<896> {
-    fn into(self) -> [u128; 7] {
-        self.data
+impl From<Bitmap<896>> for [u128; 7] {
+    fn from(bitmap: Bitmap<896>) -> Self {
+        bitmap.into_value()
     }
 }
 
-impl Into<[u128; 8]> for Bitmap<1024> {
-    fn into(self) -> [u128; 8] {
-        self.data
+impl From<Bitmap<1024>> for [u128; 8] {
+    fn from(bitmap: Bitmap<1024>) -> Self {
+        bitmap.into_value()
     }
 }
 
@@ -512,15 +512,15 @@ mod x86_arch {
         }
     }
 
-    impl Into<__m128i> for Bitmap<128> {
-        fn into(self) -> __m128i {
-            unsafe { self.load_m128i() }
+    impl From<Bitmap<128>> for __m128i {
+        fn from(data: Bitmap<128>) -> Self {
+            unsafe { data.load_m128i() }
         }
     }
 
-    impl Into<__m256i> for Bitmap<256> {
-        fn into(self) -> __m256i {
-            unsafe { self.load_m256i() }
+    impl From<Bitmap<256>> for __m256i {
+        fn from(data: Bitmap<256>) -> Self {
+            unsafe { data.load_m256i() }
         }
     }
 
