@@ -2,13 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+use core::fmt::{Debug, Error, Formatter};
 use core::hash::{Hash, Hasher};
 use core::ops::*;
 
 use crate::types::{BitOps, Bits, BitsImpl};
-
-#[cfg(feature = "std")]
-use std::fmt::{Debug, Error, Formatter};
 
 /// A compact array of bits.
 ///
@@ -72,7 +70,7 @@ where
     BitsImpl<{ SIZE }>: Bits,
     <BitsImpl<{ SIZE }> as Bits>::Store: PartialOrd,
 {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         self.as_value().partial_cmp(other.as_value())
     }
 }
@@ -82,7 +80,7 @@ where
     BitsImpl<{ SIZE }>: Bits,
     <BitsImpl<{ SIZE }> as Bits>::Store: Ord,
 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.as_value().cmp(other.as_value())
     }
 }
@@ -98,6 +96,16 @@ where
             "{}",
             <BitsImpl::<SIZE> as Bits>::Store::to_hex(&self.data)
         )
+    }
+}
+
+#[cfg(not(feature = "std"))]
+impl<const SIZE: usize> Debug for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "Bitmap<{}> {{ ... }}", SIZE)
     }
 }
 

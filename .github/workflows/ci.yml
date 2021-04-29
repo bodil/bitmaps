@@ -18,8 +18,10 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
       - uses: actions/checkout@v1
-      - name: Run tests
+      - name: Run tests (with all features)
         run: cargo test --all-features
+      - name: Run tests (with no features)
+        run: cargo test --no-default-features
 
   clippy:
     runs-on: ubuntu-latest
