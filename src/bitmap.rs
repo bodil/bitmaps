@@ -151,6 +151,12 @@ where
         self.first_index().is_none()
     }
 
+    /// Test if the bitmap contains only `true` bits.
+    #[inline]
+    pub fn is_full(self) -> bool {
+        self.first_false_index().is_none()
+    }
+
     /// Get the value of the bit at a given index.
     #[inline]
     pub fn get(self, index: usize) -> bool {
@@ -171,6 +177,12 @@ where
     #[inline]
     pub fn first_index(self) -> Option<usize> {
         <BitsImpl<SIZE> as Bits>::Store::first_index(&self.data)
+    }
+
+    /// Find the index of the first `false` bit in the bitmap.
+    #[inline]
+    pub fn first_false_index(self) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::Store::first_false_index(&self.data)
     }
 
     /// Invert all the bits in the bitmap.

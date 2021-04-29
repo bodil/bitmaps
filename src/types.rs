@@ -10,6 +10,7 @@ pub trait BitOps {
     fn set(bits: &mut Self, index: usize, value: bool) -> bool;
     fn len(bits: &Self) -> usize;
     fn first_index(bits: &Self) -> Option<usize>;
+    fn first_false_index(bits: &Self) -> Option<usize>;
     fn bit_and(bits: &mut Self, other_bits: &Self);
     fn bit_or(bits: &mut Self, other_bits: &Self);
     fn bit_xor(bits: &mut Self, other_bits: &Self);
@@ -44,6 +45,15 @@ impl BitOps for bool {
     #[inline]
     fn first_index(bits: &Self) -> Option<usize> {
         if *bits {
+            Some(0)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn first_false_index(bits: &Self) -> Option<usize> {
+        if !*bits {
             Some(0)
         } else {
             None
@@ -116,6 +126,15 @@ macro_rules! bitops_for {
                     None
                 } else {
                     Some(bits.trailing_zeros() as usize)
+                }
+            }
+
+            #[inline]
+            fn first_false_index(bits: &Self) -> Option<usize> {
+                if *bits == <$target>::MAX {
+                    None
+                } else {
+                    Some(bits.trailing_ones() as usize)
                 }
             }
 
@@ -204,6 +223,16 @@ macro_rules! bitops_for_big {
                 for (index, part) in bits.iter().enumerate() {
                     if *part != 0u128 {
                         return Some(part.trailing_zeros() as usize + (128 * index));
+                    }
+                }
+                None
+            }
+
+            #[inline]
+            fn first_false_index(bits: &Self) -> Option<usize> {
+                for (index, part) in bits.iter().enumerate() {
+                    if *part != u128::MAX {
+                        return Some(part.trailing_ones() as usize + (128 * index));
                     }
                 }
                 None
