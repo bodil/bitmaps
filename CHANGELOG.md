@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ADDED
+
+-   The methods `first_false_index()` and `is_full()` have been added to `Bitmap`. (#12)
+
+### FIXED
+
+-   The previous version broke the `no_std` feature; it has now been restored. (#11)
+
 ## [3.0.0] - 2021-04-26
 
 ### CHANGED
