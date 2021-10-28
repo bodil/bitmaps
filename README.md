@@ -24,6 +24,7 @@ fn main() {
     assert_eq!(bitmap.set(3, true), false);
     assert_eq!(bitmap.len(), 2);
     assert_eq!(bitmap.first_index(), Some(3));
+    assert_eq!(bitmap.last_index(), Some(5));
 }
 ```
 

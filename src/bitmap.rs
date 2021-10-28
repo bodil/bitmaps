@@ -187,10 +187,46 @@ where
         <BitsImpl<SIZE> as Bits>::Store::first_index(&self.data)
     }
 
+    /// Find the index of the last `true` bit in the bitmap.
+    #[inline]
+    pub fn last_index(self) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::Store::last_index(&self.data)
+    }
+
+    /// Find the index of the first `true` bit in the bitmap after `index`.
+    #[inline]
+    pub fn next_index(self, index: usize) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::Store::next_index(&self.data, index)
+    }
+
+    /// Find the index of the last `true` bit in the bitmap before `index`.
+    #[inline]
+    pub fn prev_index(self, index: usize) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::Store::prev_index(&self.data, index)
+    }
+
     /// Find the index of the first `false` bit in the bitmap.
     #[inline]
     pub fn first_false_index(self) -> Option<usize> {
-        <BitsImpl<SIZE> as Bits>::Store::first_false_index(&self.data)
+        <BitsImpl<SIZE> as Bits>::corrected_first_false_index(&self.data)
+    }
+
+    /// Find the index of the last `false` bit in the bitmap.
+    #[inline]
+    pub fn last_false_index(self) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::corrected_last_false_index(&self.data)
+    }
+
+    /// Find the index of the first `false` bit in the bitmap after `index`.
+    #[inline]
+    pub fn next_false_index(self, index: usize) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::corrected_next_false_index(&self.data, index)
+    }
+
+    /// Find the index of the first `false` bit in the bitmap before `index`.
+    #[inline]
+    pub fn prev_false_index(self, index: usize) -> Option<usize> {
+        <BitsImpl<SIZE> as Bits>::Store::prev_false_index(&self.data, index)
     }
 
     /// Invert all the bits in the bitmap.
@@ -209,7 +245,8 @@ where
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            index: 0,
+            head: None,
+            tail: Some(SIZE + 1),
             data: self,
         }
     }
@@ -391,7 +428,8 @@ pub struct Iter<'a, const SIZE: usize>
 where
     BitsImpl<SIZE>: Bits,
 {
-    index: usize,
+    head: Option<usize>,
+    tail: Option<usize>,
     data: &'a Bitmap<{ SIZE }>,
 }
 
@@ -402,16 +440,78 @@ where
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= SIZE {
-            return None;
+        let result;
+
+        match self.head {
+            None => {
+                result = self.data.first_index();
+            }
+            Some(index) => {
+                if index >= SIZE {
+                    result = None
+                } else {
+                    result = self.data.next_index(index);
+                }
+            }
         }
-        if self.data.get(self.index) {
-            self.index += 1;
-            Some(self.index - 1)
+
+        if let Some(index) = result {
+            if let Some(tail) = self.tail {
+                if tail < index {
+                    self.head = Some(SIZE + 1);
+                    self.tail = None;
+                    return None
+                }
+            } else {
+                // tail is already done
+                self.head = Some(SIZE + 1);
+                return None
+            }
+
+            self.head = Some(index);
         } else {
-            self.index += 1;
-            self.next()
+            self.head = Some(SIZE + 1);
         }
+
+        result
+    }
+}
+
+impl<'a, const SIZE: usize> DoubleEndedIterator for Iter<'a, SIZE>
+    where
+        BitsImpl<{ SIZE }>: Bits
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let result;
+
+        match self.tail {
+            None => {
+                result = None;
+            }
+            Some(index) => {
+                if index >= SIZE {
+                    result = self.data.last_index();
+                } else {
+                    result = self.data.prev_index(index);
+                }
+            }
+        }
+
+        if let Some(index) = result {
+            if let Some(head) = self.head {
+                if head > index {
+                    self.head = Some(SIZE + 1);
+                    self.tail = None;
+                    return None
+                }
+            }
+
+            self.tail = Some(index);
+        } else {
+            self.tail = None;
+        }
+
+        result
     }
 }
 
@@ -592,6 +692,21 @@ mod test {
 
     proptest! {
         #[test]
+        fn get_set_and_iter_61(bits in btree_set(0..61usize, 0..61)) {
+            let mut bitmap = Bitmap::<61>::new();
+            for i in &bits {
+                bitmap.set(*i, true);
+            }
+            for i in 0..61 {
+                assert_eq!(bitmap.get(i), bits.contains(&i));
+            }
+            assert_eq!(bitmap.first_index(), bits.clone().into_iter().next());
+            assert_eq!(bitmap.last_index(), bits.clone().into_iter().next_back());
+            assert!(bitmap.into_iter().eq(bits.clone().into_iter()));
+            assert!(bitmap.into_iter().rev().eq(bits.into_iter().rev()));
+        }
+
+        #[test]
         fn get_set_and_iter_64(bits in btree_set(0..64usize, 0..64)) {
             let mut bitmap = Bitmap::<64>::new();
             for i in &bits {
@@ -600,7 +715,10 @@ mod test {
             for i in 0..64 {
                 assert_eq!(bitmap.get(i), bits.contains(&i));
             }
-            assert!(bitmap.into_iter().eq(bits.into_iter()));
+            assert_eq!(bitmap.first_index(), bits.clone().into_iter().next());
+            assert_eq!(bitmap.last_index(), bits.clone().into_iter().next_back());
+            assert!(bitmap.into_iter().eq(bits.clone().into_iter()));
+            assert!(bitmap.into_iter().rev().eq(bits.into_iter().rev()));
         }
 
         #[test]
@@ -612,7 +730,10 @@ mod test {
             for i in 0..1024 {
                 assert_eq!(bitmap.get(i), bits.contains(&i));
             }
-            assert!(bitmap.into_iter().eq(bits.into_iter()));
+            assert_eq!(bitmap.first_index(), bits.clone().into_iter().next());
+            assert_eq!(bitmap.last_index(), bits.clone().into_iter().next_back());
+            assert!(bitmap.into_iter().eq(bits.clone().into_iter()));
+            assert!(bitmap.into_iter().rev().eq(bits.into_iter().rev()));
         }
     }
 }

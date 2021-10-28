@@ -11,11 +11,18 @@ pub trait BitOps {
     fn len(bits: &Self) -> usize;
     fn first_index(bits: &Self) -> Option<usize>;
     fn first_false_index(bits: &Self) -> Option<usize>;
+    fn last_index(bits: &Self) -> Option<usize>;
+    fn last_false_index(bits: &Self) -> Option<usize>;
+    fn next_index(bits: &Self, index: usize) -> Option<usize>;
+    fn next_false_index(bits: &Self, index: usize) -> Option<usize>;
+    fn prev_index(bits: &Self, index: usize) -> Option<usize>;
+    fn prev_false_index(bits: &Self, index: usize) -> Option<usize>;
     fn bit_and(bits: &mut Self, other_bits: &Self);
     fn bit_or(bits: &mut Self, other_bits: &Self);
     fn bit_xor(bits: &mut Self, other_bits: &Self);
     fn invert(bits: &mut Self);
     fn make_mask(shift: usize) -> Self;
+    fn bit_size() -> usize;
     #[cfg(feature = "std")]
     fn to_hex(bits: &Self) -> String;
 }
@@ -61,6 +68,63 @@ impl BitOps for bool {
     }
 
     #[inline]
+    fn last_index(bits: &Self) -> Option<usize> {
+        if *bits {
+            Some(0)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn last_false_index(bits: &Self) -> Option<usize> {
+        if !*bits {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    #[inline]
+    fn next_index(bits: &Self, index: usize) -> Option<usize> {
+        debug_assert!(index == 0);
+        if *bits {
+            None
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn next_false_index(bits: &Self, index: usize) -> Option<usize> {
+        debug_assert!(index == 0);
+        if *bits {
+            None
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn prev_index(bits: &Self, index: usize) -> Option<usize> {
+        debug_assert!(index == 0);
+        if *bits {
+            None
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn prev_false_index(bits: &Self, index: usize) -> Option<usize> {
+        debug_assert!(index == 0);
+        if *bits {
+            None
+        } else {
+            None
+        }
+    }
+
+    #[inline]
     fn bit_and(bits: &mut Self, other_bits: &Self) {
         *bits &= *other_bits;
     }
@@ -92,6 +156,10 @@ impl BitOps for bool {
         } else {
             "0".to_owned()
         }
+    }
+
+    fn bit_size() -> usize {
+        1
     }
 }
 
@@ -139,6 +207,84 @@ macro_rules! bitops_for {
             }
 
             #[inline]
+            fn last_index(bits: &Self) -> Option<usize> {
+                if *bits == 0 {
+                    None
+                } else {
+                    Some(<$target>::BITS as usize - 1 - (bits.leading_zeros() as usize))
+                }
+            }
+
+            #[inline]
+            fn last_false_index(bits: &Self) -> Option<usize> {
+                if *bits == <$target>::MAX {
+                    None
+                } else {
+                    Some(<$target>::BITS as usize - 1 - bits.leading_ones() as usize)
+                }
+            }
+
+            #[inline]
+            fn next_index(bits: &Self, index: usize) -> Option<usize> {
+                if *bits == 0 || index >= <$target>::BITS as usize - 1 {
+                    None
+                } else {
+                    let intermediate = (*bits & (<$target>::MAX.overflowing_shl(1 + index as u32).0));
+
+                    if intermediate == 0 {
+                        None
+                    } else {
+                        Some(intermediate.trailing_zeros() as usize)
+                    }
+                }
+            }
+
+            #[inline]
+            fn next_false_index(bits: &Self, index: usize) -> Option<usize> {
+                if *bits == <$target>::MAX || index >= <$target>::BITS as usize - 1 {
+                    None
+                } else {
+                    let intermediate = (*bits | ((1 << (index + 1)) - 1));
+
+                    if intermediate == <$target>::MAX {
+                        None
+                    } else {
+                        Some(intermediate.trailing_ones() as usize)
+                    }
+                }
+            }
+
+            #[inline]
+            fn prev_index(bits: &Self, index: usize) -> Option<usize> {
+                if *bits == 0 || index == 0 {
+                    None
+                } else {
+                    let intermediate = bits & ((1 << index) - 1);
+
+                    if intermediate == 0 {
+                        None
+                    } else {
+                        Some(<$target>::BITS as usize - 1 - (intermediate.leading_zeros() as usize))
+                    }
+                }
+            }
+
+            #[inline]
+            fn prev_false_index(bits: &Self, index: usize) -> Option<usize> {
+                if *bits == <$target>::MAX || index == 0 {
+                    None
+                } else {
+                    let intermediate = bits | (<$target>::MAX.overflowing_shl(index as u32 - 1).0);
+
+                    if intermediate == <$target>::MAX {
+                        None
+                    } else {
+                        Some(<$target>::BITS as usize - 1 - (intermediate.leading_zeros() as usize))
+                    }
+                }
+            }
+
+            #[inline]
             fn bit_and(bits: &mut Self, other_bits: &Self) {
                 *bits &= *other_bits;
             }
@@ -166,6 +312,11 @@ macro_rules! bitops_for {
             #[cfg(feature = "std")]
             fn to_hex(bits: &Self) -> String {
                 format!("{:x}", bits)
+            }
+
+            #[inline]
+            fn bit_size() -> usize {
+                <$target>::BITS as usize
             }
         }
     };
@@ -229,6 +380,61 @@ macro_rules! bitops_for_big {
             }
 
             #[inline]
+            fn last_index(bits: &Self) -> Option<usize> {
+                for (index, part) in bits.iter().enumerate().rev() {
+                    if *part != 0u128 {
+                        return Some((128 * index) + <u128 as BitOps>::last_index(part).unwrap());
+                    }
+                }
+                None
+            }
+
+            #[inline]
+            fn next_index(bits: &Self, index: usize) -> Option<usize> {
+                let segment: usize = index / 128;
+
+                if (segment >= bits.len()) {
+                    return None
+                }
+
+                let intermediate = <u128 as BitOps>::next_index(&bits[segment], index % 128);
+
+                if let Some(index) = intermediate {
+                    Some(segment * 128 + index)
+                } else {
+                    for (index, part) in bits[(segment + 1)..].iter().enumerate() {
+                        if *part != 0u128 {
+                            return Some(128 * (segment + 1 + index) + <u128 as BitOps>::first_index(part).unwrap());
+                        }
+                    }
+
+                    None
+                }
+            }
+
+            #[inline]
+            fn prev_index(bits: &Self, index: usize) -> Option<usize> {
+                let segment: usize = index / 128;
+
+                if (segment >= bits.len()) {
+                    return None
+                }
+
+                let intermediate = <u128 as BitOps>::prev_index(&bits[segment], index % 128);
+
+                if let Some(index) = intermediate {
+                    Some(segment * 128 + index)
+                } else {
+                    for (index, part) in bits[..segment].iter().enumerate().rev() {
+                        if *part != 0u128 {
+                            return Some(<u128 as BitOps>::last_index(part).unwrap() + (128 * index));
+                        }
+                    }
+                    None
+                }
+            }
+
+            #[inline]
             fn first_false_index(bits: &Self) -> Option<usize> {
                 for (index, part) in bits.iter().enumerate() {
                     if *part != u128::MAX {
@@ -236,6 +442,62 @@ macro_rules! bitops_for_big {
                     }
                 }
                 None
+            }
+
+            #[inline]
+            fn last_false_index(bits: &Self) -> Option<usize> {
+                for (index, part) in bits.iter().enumerate().rev() {
+                    if *part != u128::MAX {
+                        return Some(<u128 as BitOps>::last_false_index(part).unwrap() + (128 * index));
+                    }
+                }
+                None
+            }
+
+            #[inline]
+            fn next_false_index(bits: &Self, index: usize) -> Option<usize> {
+                let segment: usize = index / 128;
+
+                if (segment >= bits.len()) {
+                    return None
+                }
+
+                let intermediate = <u128 as BitOps>::next_false_index(&bits[segment], index % 128);
+
+                if let Some(index) = intermediate {
+                    Some(segment * 128 + index)
+                } else {
+                    for (index, part) in bits[(segment + 1)..].iter().enumerate() {
+                        if *part != u128::MAX {
+                            return Some(128 * (segment + 1 + index) + <u128 as BitOps>::first_false_index(part).unwrap());
+                        }
+                    }
+
+                    None
+                }
+            }
+
+            #[inline]
+            fn prev_false_index(bits: &Self, index: usize) -> Option<usize> {
+                let segment: usize = index / 128;
+
+                if (segment >= bits.len()) {
+                    return None
+                }
+
+                let intermediate = <u128 as BitOps>::prev_false_index(&bits[segment], index % 128);
+
+                if let Some(index) = intermediate {
+                    Some(segment * 128 + index)
+                } else {
+                    for (index, part) in bits[..segment].iter().enumerate().rev() {
+                        if *part != u128::MAX {
+                            return Some(<u128 as BitOps>::last_false_index(part).unwrap() + (128 * index));
+                        }
+                    }
+
+                    None
+                }
             }
 
             #[inline]
@@ -274,6 +536,11 @@ macro_rules! bitops_for_big {
                 }
                 out
             }
+
+            #[inline]
+            fn bit_size() -> usize {
+                (<u128>::BITS * $words) as usize
+            }
         }
     };
 }
@@ -311,6 +578,60 @@ pub trait Bits {
     const VALUE: usize;
     /// A primitive integer type suitable for storing this many bits.
     type Store: BitOps + Default + Copy + PartialEq + Debug;
+
+    /// The underlying data type might have some trailing bits, which would
+    /// result in an invalid value being returned.
+    ///
+    /// Thankfully, this only happens for 'false_index'-functions (bits higher
+    /// than VALUE - 1 cannot be set), and even then only for functions that
+    /// might seek in that area: that is all forward seeking functions, and
+    /// the one seeking backwards from the end (last_false_index).
+    /// prev_false_index is not affected, because the supplied index must be
+    /// valid, and any index lower than that is also valid.
+    #[inline]
+    fn corrected_first_false_index(store: &Self::Store) -> Option<usize> {
+        let result = Self::Store::first_false_index(store);
+
+        if Self::Store::bit_size() == Self::VALUE {
+            result
+        } else if let Some(result) = result {
+            if result >= Self::VALUE {
+                None
+            } else {
+                Some(result)
+            }
+        } else {
+            None
+        }
+    }
+
+    /// The underlying data type might have some trailing bits, which would
+    /// result in an invalid result, so we check against that here.
+    #[inline]
+    fn corrected_last_false_index(store: &Self::Store) -> Option<usize> {
+        if Self::Store::bit_size() == Self::VALUE {
+            Self::Store::last_false_index(store)
+        } else {
+            Self::Store::prev_false_index(store, Self::VALUE)
+        }
+    }
+
+    #[inline]
+    fn corrected_next_false_index(store: &Self::Store, index: usize) -> Option<usize> {
+        let result = Self::Store::next_false_index(store, index);
+
+        if Self::Store::bit_size() == Self::VALUE {
+            result
+        } else if let Some(result) = result {
+            if result >= Self::VALUE {
+                None
+            } else {
+                Some(result)
+            }
+        } else {
+            None
+        }
+    }
 }
 
 pub struct BitsImpl<const N: usize>;
