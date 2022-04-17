@@ -190,7 +190,7 @@ where
     /// Find the index of the first `false` bit in the bitmap.
     #[inline]
     pub fn first_false_index(self) -> Option<usize> {
-        <BitsImpl<SIZE> as Bits>::Store::first_false_index(&self.data)
+        <BitsImpl<SIZE> as Bits>::Store::first_false_index(&self.data).filter(|i| *i < SIZE)
     }
 
     /// Invert all the bits in the bitmap.
