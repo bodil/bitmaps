@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) and this project
 adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ADDED
+
+-   `Bitmap` now implements `TryFrom<&[u8]>` and `AsRef<[u8]>`, and an `as_bytes()` method was
+    added, to facilitate conversion to and from byte arrays.
+
 ## [3.1.0] - 2021-04-30
 
 ### ADDED

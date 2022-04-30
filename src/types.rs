@@ -313,6 +313,7 @@ pub trait Bits {
     type Store: BitOps + Default + Copy + PartialEq + Debug;
 }
 
+#[doc(hidden)]
 pub struct BitsImpl<const N: usize>;
 
 impl Bits for BitsImpl<1> {

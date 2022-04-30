@@ -4,6 +4,7 @@
 
 use core::fmt::{Debug, Error, Formatter};
 use core::hash::{Hash, Hasher};
+use core::mem::{size_of, MaybeUninit};
 use core::ops::*;
 
 use crate::types::{BitOps, Bits, BitsImpl};
@@ -99,6 +100,56 @@ where
     }
 }
 
+impl<const SIZE: usize> AsRef<[u8]> for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+{
+    fn as_ref(&self) -> &[u8] {
+        unsafe {
+            core::slice::from_raw_parts(
+                &self.data as *const _ as *const u8,
+                size_of::<<BitsImpl<SIZE> as Bits>::Store>(),
+            )
+        }
+    }
+}
+
+impl<const SIZE: usize> AsMut<[u8]> for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+{
+    fn as_mut(&mut self) -> &mut [u8] {
+        unsafe {
+            core::slice::from_raw_parts_mut(
+                &mut self.data as *mut _ as *mut u8,
+                size_of::<<BitsImpl<SIZE> as Bits>::Store>(),
+            )
+        }
+    }
+}
+
+impl<const SIZE: usize> TryFrom<&[u8]> for Bitmap<{ SIZE }>
+where
+    BitsImpl<{ SIZE }>: Bits,
+{
+    type Error = ();
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() == size_of::<<BitsImpl<SIZE> as Bits>::Store>() {
+            let mut data: MaybeUninit<<BitsImpl<SIZE> as Bits>::Store> = MaybeUninit::uninit();
+            let data_ptr: *mut u8 = data.as_mut_ptr().cast();
+            Ok(unsafe {
+                data_ptr.copy_from_nonoverlapping(value.as_ptr(), value.len());
+                Self {
+                    data: data.assume_init(),
+                }
+            })
+        } else {
+            Err(())
+        }
+    }
+}
+
 #[cfg(not(feature = "std"))]
 impl<const SIZE: usize> Debug for Bitmap<{ SIZE }>
 where
@@ -145,6 +196,11 @@ where
     #[inline]
     pub fn as_value(&self) -> &<BitsImpl<SIZE> as Bits>::Store {
         &self.data
+    }
+
+    #[inline]
+    pub fn as_bytes(&self) -> &[u8] {
+        AsRef::<[u8]>::as_ref(self)
     }
 
     /// Count the number of `true` bits in the bitmap.
@@ -613,6 +669,16 @@ mod test {
                 assert_eq!(bitmap.get(i), bits.contains(&i));
             }
             assert!(bitmap.into_iter().eq(bits.into_iter()));
+        }
+
+        #[test]
+        fn convert_1024(bits in btree_set(0..1024usize, 0..1024)) {
+            let mut bitmap = Bitmap::<1024>::new();
+            for i in &bits {
+                bitmap.set(*i, true);
+            }
+            let new_bitmap: Bitmap<1024> = TryFrom::try_from(bitmap.as_bytes()).expect("Unable to convert bitmap!");
+            assert_eq!(new_bitmap, bitmap);
         }
     }
 }
