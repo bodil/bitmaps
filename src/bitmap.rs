@@ -174,7 +174,7 @@ where
     /// `true`, and every other bit is `false`.
     #[inline]
     pub fn mask(bits: usize) -> Self {
-        debug_assert!(bits < SIZE);
+        debug_assert!(bits <= SIZE);
         Self {
             data: <BitsImpl<SIZE> as Bits>::Store::make_mask(bits),
         }
@@ -516,12 +516,12 @@ where
                 if tail < index {
                     self.head = Some(SIZE + 1);
                     self.tail = None;
-                    return None
+                    return None;
                 }
             } else {
                 // tail is already done
                 self.head = Some(SIZE + 1);
-                return None
+                return None;
             }
 
             self.head = Some(index);
@@ -534,8 +534,8 @@ where
 }
 
 impl<'a, const SIZE: usize> DoubleEndedIterator for Iter<'a, SIZE>
-    where
-        BitsImpl<{ SIZE }>: Bits
+where
+    BitsImpl<{ SIZE }>: Bits,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let result;
@@ -558,7 +558,7 @@ impl<'a, const SIZE: usize> DoubleEndedIterator for Iter<'a, SIZE>
                 if head > index {
                     self.head = Some(SIZE + 1);
                     self.tail = None;
-                    return None
+                    return None;
                 }
             }
 
