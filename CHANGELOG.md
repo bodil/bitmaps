@@ -11,6 +11,8 @@ adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 -   `Bitmap` now implements `TryFrom<&[u8]>` and `AsRef<[u8]>`, and an `as_bytes()` method was
     added, to facilitate conversion to and from byte arrays.
+-   The iterator is now bidirectional, and `next_index`, `prev_index` and `last_index` methods, with
+    corresponding `false_index` variants, have been added. (#14)
 
 ## [3.1.0] - 2021-04-30
 
