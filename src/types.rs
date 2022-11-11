@@ -229,7 +229,8 @@ macro_rules! bitops_for {
                 if *bits == 0 || index >= <$target>::BITS as usize - 1 {
                     None
                 } else {
-                    let intermediate = (*bits & (<$target>::MAX.overflowing_shl(1 + index as u32).0));
+                    let intermediate =
+                        (*bits & (<$target>::MAX.overflowing_shl(1 + index as u32).0));
 
                     if intermediate == 0 {
                         None
@@ -394,7 +395,7 @@ macro_rules! bitops_for_big {
                 let segment: usize = index / 128;
 
                 if (segment >= bits.len()) {
-                    return None
+                    return None;
                 }
 
                 let intermediate = <u128 as BitOps>::next_index(&bits[segment], index % 128);
@@ -404,7 +405,10 @@ macro_rules! bitops_for_big {
                 } else {
                     for (index, part) in bits[(segment + 1)..].iter().enumerate() {
                         if *part != 0u128 {
-                            return Some(128 * (segment + 1 + index) + <u128 as BitOps>::first_index(part).unwrap());
+                            return Some(
+                                128 * (segment + 1 + index)
+                                    + <u128 as BitOps>::first_index(part).unwrap(),
+                            );
                         }
                     }
 
@@ -417,7 +421,7 @@ macro_rules! bitops_for_big {
                 let segment: usize = index / 128;
 
                 if (segment >= bits.len()) {
-                    return None
+                    return None;
                 }
 
                 let intermediate = <u128 as BitOps>::prev_index(&bits[segment], index % 128);
@@ -427,7 +431,9 @@ macro_rules! bitops_for_big {
                 } else {
                     for (index, part) in bits[..segment].iter().enumerate().rev() {
                         if *part != 0u128 {
-                            return Some(<u128 as BitOps>::last_index(part).unwrap() + (128 * index));
+                            return Some(
+                                <u128 as BitOps>::last_index(part).unwrap() + (128 * index),
+                            );
                         }
                     }
                     None
@@ -448,7 +454,9 @@ macro_rules! bitops_for_big {
             fn last_false_index(bits: &Self) -> Option<usize> {
                 for (index, part) in bits.iter().enumerate().rev() {
                     if *part != u128::MAX {
-                        return Some(<u128 as BitOps>::last_false_index(part).unwrap() + (128 * index));
+                        return Some(
+                            <u128 as BitOps>::last_false_index(part).unwrap() + (128 * index),
+                        );
                     }
                 }
                 None
@@ -459,7 +467,7 @@ macro_rules! bitops_for_big {
                 let segment: usize = index / 128;
 
                 if (segment >= bits.len()) {
-                    return None
+                    return None;
                 }
 
                 let intermediate = <u128 as BitOps>::next_false_index(&bits[segment], index % 128);
@@ -469,7 +477,10 @@ macro_rules! bitops_for_big {
                 } else {
                     for (index, part) in bits[(segment + 1)..].iter().enumerate() {
                         if *part != u128::MAX {
-                            return Some(128 * (segment + 1 + index) + <u128 as BitOps>::first_false_index(part).unwrap());
+                            return Some(
+                                128 * (segment + 1 + index)
+                                    + <u128 as BitOps>::first_false_index(part).unwrap(),
+                            );
                         }
                     }
 
@@ -482,7 +493,7 @@ macro_rules! bitops_for_big {
                 let segment: usize = index / 128;
 
                 if (segment >= bits.len()) {
-                    return None
+                    return None;
                 }
 
                 let intermediate = <u128 as BitOps>::prev_false_index(&bits[segment], index % 128);
@@ -492,7 +503,9 @@ macro_rules! bitops_for_big {
                 } else {
                     for (index, part) in bits[..segment].iter().enumerate().rev() {
                         if *part != u128::MAX {
-                            return Some(<u128 as BitOps>::last_false_index(part).unwrap() + (128 * index));
+                            return Some(
+                                <u128 as BitOps>::last_false_index(part).unwrap() + (128 * index),
+                            );
                         }
                     }
 
@@ -594,14 +607,8 @@ pub trait Bits {
 
         if Self::Store::bit_size() == Self::VALUE {
             result
-        } else if let Some(result) = result {
-            if result >= Self::VALUE {
-                None
-            } else {
-                Some(result)
-            }
         } else {
-            None
+            result.filter(|&result| result < Self::VALUE)
         }
     }
 
@@ -622,14 +629,8 @@ pub trait Bits {
 
         if Self::Store::bit_size() == Self::VALUE {
             result
-        } else if let Some(result) = result {
-            if result >= Self::VALUE {
-                None
-            } else {
-                Some(result)
-            }
         } else {
-            None
+            result.filter(|&result| result < Self::VALUE)
         }
     }
 }
