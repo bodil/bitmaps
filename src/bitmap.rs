@@ -801,5 +801,27 @@ mod test {
             let new_bitmap: Bitmap<1024> = TryFrom::try_from(bitmap.as_bytes()).expect("Unable to convert bitmap!");
             assert_eq!(new_bitmap, bitmap);
         }
+
+        #[test]
+        fn mask(shift in 0..=128usize) {
+            if shift <= 32 {
+                Bitmap::<32>::mask(shift);
+            }
+
+            if shift <= 64 {
+                Bitmap::<64>::mask(shift);
+            }
+
+            if shift <= 128 {
+                Bitmap::<128>::mask(shift);
+            }
+        }
+    }
+
+    #[test]
+    fn mask_limits() {
+        assert_eq!(Bitmap::<32>::mask(32).into_value(), u32::MAX);
+        assert_eq!(Bitmap::<64>::mask(64).into_value(), u64::MAX);
+        assert_eq!(Bitmap::<128>::mask(128).into_value(), u128::MAX);
     }
 }

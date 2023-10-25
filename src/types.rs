@@ -306,7 +306,8 @@ macro_rules! bitops_for {
 
             #[inline]
             fn make_mask(shift: usize) -> Self {
-                (1 << shift) - 1
+                let (x, overflow) = (1 as Self).overflowing_shl(shift as u32);
+                if overflow { Self::MAX } else { x - 1 }
             }
 
             #[cfg(feature = "std")]
