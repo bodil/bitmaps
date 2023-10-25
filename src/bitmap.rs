@@ -823,5 +823,8 @@ mod test {
         assert_eq!(Bitmap::<32>::mask(32).into_value(), u32::MAX);
         assert_eq!(Bitmap::<64>::mask(64).into_value(), u64::MAX);
         assert_eq!(Bitmap::<128>::mask(128).into_value(), u128::MAX);
+        assert!(Bitmap::<32>::mask(32).is_full());
+        assert!(Bitmap::<64>::mask(64).is_full());
+        assert!(Bitmap::<128>::mask(128).is_full());
     }
 }
