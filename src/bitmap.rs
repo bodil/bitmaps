@@ -290,6 +290,16 @@ where
     pub fn invert(&mut self) {
         <BitsImpl<SIZE> as Bits>::Store::invert(&mut self.data);
     }
+
+    /// Sets bit range [high, low] to 1
+    pub fn set_range(&mut self, high: usize, low: usize) {
+        <BitsImpl<SIZE> as Bits>::Store::set_range(&mut self.data, high, low);
+    }
+
+    /// Sets bit range [high, low] to 0
+    pub fn clear_range(&mut self, high: usize, low: usize) {
+        <BitsImpl<SIZE> as Bits>::Store::clear_range(&mut self.data, high, low);
+    }
 }
 
 impl<'a, const SIZE: usize> IntoIterator for &'a Bitmap<{ SIZE }>

@@ -3,6 +3,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use core::fmt::Debug;
+use core::mem::size_of;
+use core::ops::{Add, Shl, Shr, Sub, Not, BitAnd};
 
 /// A trait that defines generalised operations on a `Bits::Store` type.
 pub trait BitOps {
@@ -25,6 +27,8 @@ pub trait BitOps {
     fn bit_size() -> usize;
     #[cfg(feature = "std")]
     fn to_hex(bits: &Self) -> String;
+    fn set_range(bits: &mut Self, high: usize, low: usize);
+    fn clear_range(bits: &mut Self, high: usize, low: usize);
 }
 
 impl BitOps for bool {
@@ -161,6 +165,29 @@ impl BitOps for bool {
     fn bit_size() -> usize {
         1
     }
+
+    fn set_range(bits: &mut Self, high: usize, _low: usize) {
+        debug_assert!(high == 0 && _low == 0);
+        *bits = true;
+    }
+
+    fn clear_range(bits: &mut Self, high: usize, _low: usize) {
+        debug_assert!(high == 0 && _low == 0);
+        *bits = false;
+    }
+}
+
+#[inline]
+fn genmask<T>(h: T, l: T) -> T
+where
+    T: Shl<Output = T> + Add<Output = T> + Shr<Output = T> + Sub<Output = T> + Not<Output = T> + BitAnd<Output = T> + TryFrom<usize> + Copy,
+    <T as TryFrom<usize>>::Error: Debug
+{
+    let bits_per_t: T = T::try_from(size_of::<T>() * 8).unwrap();
+    let one: T = T::try_from(1_usize).unwrap();
+    let zero: T = T::try_from(0_usize).unwrap();
+
+    (!zero - (one << l) + one) & (!zero >> (bits_per_t - one - h))
 }
 
 macro_rules! bitops_for {
@@ -318,6 +345,16 @@ macro_rules! bitops_for {
             #[inline]
             fn bit_size() -> usize {
                 <$target>::BITS as usize
+            }
+
+            #[inline]
+            fn set_range(bits: &mut Self, high: usize, low: usize) {
+                *bits |= genmask(<$target>::try_from(high).unwrap(), <$target>::try_from(low).unwrap());
+            }
+
+            #[inline]
+            fn clear_range(bits: &mut Self, high: usize, low: usize) {
+                *bits &= !genmask(<$target>::try_from(high).unwrap(), <$target>::try_from(low).unwrap());
             }
         }
     };
@@ -541,6 +578,31 @@ macro_rules! bitops_for_big {
             #[inline]
             fn bit_size() -> usize {
                 (<u128>::BITS * $words) as usize
+            }
+
+            #[inline]
+            fn set_range(bits: &mut Self, high: usize, low: usize) {
+                let first_index = low / 128;
+                let last_index = high / 128;
+
+                for i in first_index..=last_index {
+                    let first_bit_index = if i == first_index { low % 128 } else { 0 };
+                    let last_bit_index = if i == last_index { high % 128 } else { 127 };
+
+                    bits[i] |= genmask(last_bit_index as u128, first_bit_index as u128);
+                }
+            }
+
+            fn clear_range(bits: &mut Self, high: usize, low: usize) {
+                let first_index = low / 128;
+                let last_index = high / 128;
+
+                for i in first_index..=last_index {
+                    let first_bit_index = if i == first_index { low % 128 } else { 0 };
+                    let last_bit_index = if i == last_index { high % 128 } else { 127 };
+
+                    bits[i] &= !genmask(last_bit_index as u128, first_bit_index as u128);
+                }
             }
         }
     };
